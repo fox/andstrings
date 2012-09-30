@@ -1,0 +1,31 @@
+#!/usr/bin/env ruby
+
+$LOAD_PATH << File.dirname(__FILE__) + "/../lib"
+
+require "find"
+require "andstrings"
+
+unless File.exists? "res" and File.exists? "src"
+  abort "andstrings should be run from root of android project."
+end
+
+include Andstrings
+
+Dir["res/layout/*.xml"].each do |file|
+  contents = File.read file
+  replacements = 0
+  contents.gsub! /text="([^"]+)"/ do |m|
+    string = LocalString.new $1
+    next unless string.localisable?
+    unless string.in_strings_xml?
+      StringsXml.put_string string
+    end
+    replacements += 1
+    "text=\"@string/#{string.key}\""
+  end
+
+  next unless replacements > 0
+  Output.write file, contents, replacements
+end
+
+StringsXml.save
